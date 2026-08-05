@@ -4,7 +4,7 @@ Ce guide explique les algorithmes pris en charge par l'outil Crypto Prog et comm
 
 ## Interface Graphique (GUI)
 
-L'interface graphique (`crypto_gui.py`) offre une manière intuitive d'utiliser l'outil :
+L'interface graphique modernisée (`crypto_gui.py`) offre une manière intuitive d'utiliser l'outil, divisée en deux onglets principaux (Outil de Chiffrement et Guide Utilisateur) :
 
 1.  **Algorithme** : Sélectionnez la méthode de chiffrement en haut.
 2.  **Paramètres** : Les champs s'adaptent automatiquement (Décalage, Clé, etc.).
@@ -12,6 +12,7 @@ L'interface graphique (`crypto_gui.py`) offre une manière intuitive d'utiliser 
 4.  **Actions** : Cliquez sur "CHIFFRER" ou "DÉCHIFFRER".
 5.  **Sortie** : Le résultat s'affiche en bas. Vous pouvez le sauvegarder dans un fichier avec le bouton "Sauvegarder Résultat".
 6.  **RSA Special** : Pour RSA, l'interface inclut un bouton "Générer Clés" pour créer facilement vos paires de clés.
+7.  **Guide Intégré** : Vous pouvez à tout moment consulter ce guide utilisateur directement depuis le menu latéral de l'application !
 
 ## Algorithmes Classiques
 

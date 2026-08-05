@@ -8,7 +8,7 @@ Ce projet fournit une interface en ligne de commande (CLI) simple et une bibliot
 2. Installez les dépendances requises :
 
 ```bash
-pip install cryptography
+pip install -r requirements.txt
 ```
 
 ## Utilisation
@@ -20,7 +20,7 @@ Pour une utilisation plus conviviale, lancez l'interface graphique :
 python crypto_gui.py
 ```
 
-L'interface vous permet de choisir l'algorithme, de saisir du texte ou de charger un fichier, et de gérer vos clés RSA facilement.
+L'interface modernisée vous permet de choisir l'algorithme, de saisir du texte ou de charger un fichier, et de gérer vos clés RSA facilement. Elle intègre également le guide utilisateur directement consultable depuis l'application via l'onglet "Guide Utilisateur".
 
 ### Ligne de Commande (CLI)
 
