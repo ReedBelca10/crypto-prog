@@ -1,5 +1,8 @@
 # Programme de Cryptographie
 
+![Python Version](https://img.shields.io/badge/Test%C3%A9%20sur-Python%203.10%2B-blue)
+[![English](https://img.shields.io/badge/Language-English-red)](README_EN.md)
+
 Ce projet fournit une interface en ligne de commande (CLI) simple et une bibliothèque Python (`crypto_utils`) pour divers algorithmes de chiffrement, allant des classiques (César, Affine, Vigenère) aux modernes (RSA, DES, AES).
 
 ## Installation
