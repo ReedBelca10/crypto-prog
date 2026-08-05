@@ -1,109 +1,204 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
+import customtkinter as ctk
 import crypto_utils
 import os
 import hashlib
+import markdown
+from tkhtmlview import HTMLLabel
 
-class CryptoGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Outil Crypto - Interface Graphique")
-        self.root.geometry("700x600")
-        self.root.configure(bg="#f0f0f0")
+# Set appearance mode and color theme
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
-        self.setup_ui()
+class CryptoGUI(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        
+        self.title("Outil Crypto - Interface Graphique")
+        self.geometry("900x700")
 
-    def setup_ui(self):
-        # En-tête
-        header_frame = tk.Frame(self.root, bg="#2c3e50", height=60)
-        header_frame.pack(fill="x")
-        tk.Label(header_frame, text="Outil de Chiffrement / Déchiffrement", font=("Arial", 16, "bold"), fg="white", bg="#2c3e50").pack(pady=15)
+        # Configure grid layout
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        # Conteneur principal
-        main_frame = tk.Frame(self.root, padx=20, pady=20, bg="#f0f0f0")
-        main_frame.pack(fill="both", expand=True)
+        # --- Sidebar ---
+        self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
-        # Sélection de l'algorithme
-        algo_frame = tk.LabelFrame(main_frame, text="Algorithme", padx=10, pady=10, bg="#f0f0f0")
-        algo_frame.pack(fill="x", pady=(0, 15))
+        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Crypto Prog", font=ctk.CTkFont(size=20, weight="bold"))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        self.tool_button = ctk.CTkButton(self.sidebar_frame, text="Outil de Chiffrement", command=self.show_tool_frame)
+        self.tool_button.grid(row=1, column=0, padx=20, pady=10)
+
+        self.guide_button = ctk.CTkButton(self.sidebar_frame, text="Guide Utilisateur", command=self.show_guide_frame)
+        self.guide_button.grid(row=2, column=0, padx=20, pady=10)
+
+        self.appearance_mode_label = ctk.CTkLabel(self.sidebar_frame, text="Thème:", anchor="w")
+        self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
+        self.appearance_mode_optionemenu = ctk.CTkOptionMenu(self.sidebar_frame, values=["System", "Light", "Dark"],
+                                                               command=self.change_appearance_mode_event)
+        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 20))
+
+        # --- Main Frame Containers ---
+        self.tool_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.guide_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
+
+        self.setup_tool_ui()
+        self.setup_guide_ui()
+
+        # Show default frame
+        self.show_tool_frame()
+
+    def change_appearance_mode_event(self, new_appearance_mode: str):
+        ctk.set_appearance_mode(new_appearance_mode)
+
+    def show_tool_frame(self):
+        self.guide_frame.grid_forget()
+        self.tool_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self.tool_frame.grid_columnconfigure(0, weight=1)
+        # Configure rows in tool_frame to stretch properly
+        self.tool_frame.grid_rowconfigure(2, weight=1)
+        self.tool_frame.grid_rowconfigure(4, weight=1)
+
+    def show_guide_frame(self):
+        self.tool_frame.grid_forget()
+        self.guide_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self.guide_frame.grid_columnconfigure(0, weight=1)
+        self.guide_frame.grid_rowconfigure(1, weight=1)
+
+    def setup_tool_ui(self):
+        # Algorithm Selection
+        self.algo_frame = ctk.CTkFrame(self.tool_frame)
+        self.algo_frame.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        self.algo_frame.grid_columnconfigure(0, weight=1)
+
+        algo_label = ctk.CTkLabel(self.algo_frame, text="1. Choisissez l'algorithme", font=ctk.CTkFont(weight="bold"))
+        algo_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="w")
 
         self.algo_var = tk.StringVar(value="caesar")
+        
+        radio_frame = ctk.CTkFrame(self.algo_frame, fg_color="transparent")
+        radio_frame.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="w")
+
         algorithms = [
-            ("César", "caesar"),
-            ("Affine", "affine"),
-            ("Vigenère", "vigenere"),
-            ("RSA", "rsa"),
-            ("DES", "des"),
-            ("AES", "aes")
+            ("César", "caesar"), ("Affine", "affine"), ("Vigenère", "vigenere"),
+            ("RSA", "rsa"), ("DES", "des"), ("AES", "aes")
         ]
 
-        for text, val in algorithms:
-            tk.Radiobutton(algo_frame, text=text, variable=self.algo_var, value=val, command=self.update_parameters_visibility, bg="#f0f0f0").pack(side="left", padx=10)
+        for i, (text, val) in enumerate(algorithms):
+            rb = ctk.CTkRadioButton(radio_frame, text=text, variable=self.algo_var, value=val, command=self.update_parameters_visibility)
+            rb.grid(row=0, column=i, padx=10, pady=5)
 
-        # Cadre des paramètres (Dynamique)
-        self.params_frame = tk.LabelFrame(main_frame, text="Paramètres", padx=10, pady=10, bg="#f0f0f0")
-        self.params_frame.pack(fill="x", pady=(0, 15))
+        # Parameters Frame
+        self.params_frame = ctk.CTkFrame(self.tool_frame)
+        self.params_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15))
+        self.params_frame.grid_columnconfigure(0, weight=1)
+        
+        param_label = ctk.CTkLabel(self.params_frame, text="2. Paramètres", font=ctk.CTkFont(weight="bold"))
+        param_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="w")
 
-        # Paramètres César
-        self.caesar_frame = tk.Frame(self.params_frame, bg="#f0f0f0")
-        tk.Label(self.caesar_frame, text="Décalage (Shift):", bg="#f0f0f0").pack(side="left")
-        self.shift_entry = tk.Entry(self.caesar_frame, width=5)
+        self.params_container = ctk.CTkFrame(self.params_frame, fg_color="transparent")
+        self.params_container.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="ew")
+
+        # Caesar
+        self.caesar_frame = ctk.CTkFrame(self.params_container, fg_color="transparent")
+        ctk.CTkLabel(self.caesar_frame, text="Décalage (Shift):").pack(side="left", padx=5)
+        self.shift_entry = ctk.CTkEntry(self.caesar_frame, width=80)
         self.shift_entry.pack(side="left", padx=5)
 
-        # Paramètres Affine
-        self.affine_frame = tk.Frame(self.params_frame, bg="#f0f0f0")
-        tk.Label(self.affine_frame, text="Coefficient a:", bg="#f0f0f0").pack(side="left")
-        self.a_entry = tk.Entry(self.affine_frame, width=5)
+        # Affine
+        self.affine_frame = ctk.CTkFrame(self.params_container, fg_color="transparent")
+        ctk.CTkLabel(self.affine_frame, text="Coefficient a:").pack(side="left", padx=5)
+        self.a_entry = ctk.CTkEntry(self.affine_frame, width=80)
         self.a_entry.pack(side="left", padx=5)
-        tk.Label(self.affine_frame, text="Coefficient b:", bg="#f0f0f0").pack(side="left")
-        self.b_entry = tk.Entry(self.affine_frame, width=5)
+        ctk.CTkLabel(self.affine_frame, text="Coefficient b:").pack(side="left", padx=5)
+        self.b_entry = ctk.CTkEntry(self.affine_frame, width=80)
         self.b_entry.pack(side="left", padx=5)
 
-        # Paramètres Clé (Vigenère, AES, DES)
-        self.key_frame = tk.Frame(self.params_frame, bg="#f0f0f0")
-        tk.Label(self.key_frame, text="Clé:", bg="#f0f0f0").pack(side="left")
-        self.key_entry = tk.Entry(self.key_frame, width=30)
+        # Key (Vigenere, AES, DES)
+        self.key_frame = ctk.CTkFrame(self.params_container, fg_color="transparent")
+        ctk.CTkLabel(self.key_frame, text="Clé:").pack(side="left", padx=5)
+        self.key_entry = ctk.CTkEntry(self.key_frame, width=250)
         self.key_entry.pack(side="left", padx=5)
 
-        # Paramètres RSA
-        self.rsa_frame = tk.Frame(self.params_frame, bg="#f0f0f0")
-        tk.Button(self.rsa_frame, text="Générer Clés", command=self.generate_rsa_keys).pack(side="left", padx=5)
+        # RSA
+        self.rsa_frame = ctk.CTkFrame(self.params_container, fg_color="transparent")
+        ctk.CTkButton(self.rsa_frame, text="Générer Clés", command=self.generate_rsa_keys, width=100).pack(side="left", padx=5)
         self.pub_path_var = tk.StringVar()
-        tk.Button(self.rsa_frame, text="Clé Publique", command=lambda: self.select_file(self.pub_path_var)).pack(side="left", padx=5)
-        tk.Entry(self.rsa_frame, textvariable=self.pub_path_var, width=15).pack(side="left", padx=5)
+        ctk.CTkButton(self.rsa_frame, text="Clé Publique", command=lambda: self.select_file(self.pub_path_var), width=100).pack(side="left", padx=5)
+        ctk.CTkEntry(self.rsa_frame, textvariable=self.pub_path_var, width=150).pack(side="left", padx=5)
         self.priv_path_var = tk.StringVar()
-        tk.Button(self.rsa_frame, text="Clé Privée", command=lambda: self.select_file(self.priv_path_var)).pack(side="left", padx=5)
-        tk.Entry(self.rsa_frame, textvariable=self.priv_path_var, width=15).pack(side="left", padx=5)
+        ctk.CTkButton(self.rsa_frame, text="Clé Privée", command=lambda: self.select_file(self.priv_path_var), width=100).pack(side="left", padx=5)
+        ctk.CTkEntry(self.rsa_frame, textvariable=self.priv_path_var, width=150).pack(side="left", padx=5)
 
         self.update_parameters_visibility()
 
-        # Cadre d'entrée
-        input_frame = tk.LabelFrame(main_frame, text="Entrée (Texte ou Fichier)", padx=10, pady=10, bg="#f0f0f0")
-        input_frame.pack(fill="both", expand=True, pady=(0, 15))
+        # Input Frame
+        self.input_frame = ctk.CTkFrame(self.tool_frame)
+        self.input_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 15))
+        self.input_frame.grid_columnconfigure(0, weight=1)
+        self.input_frame.grid_rowconfigure(1, weight=1)
 
-        self.text_input = tk.Text(input_frame, height=5)
-        self.text_input.pack(fill="both", expand=True, pady=(0, 5))
+        input_header = ctk.CTkFrame(self.input_frame, fg_color="transparent")
+        input_header.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+        ctk.CTkLabel(input_header, text="3. Entrée (Texte ou Fichier)", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        ctk.CTkButton(input_header, text="Charger Fichier", command=self.load_input_file, width=120).pack(side="right")
 
-        tk.Button(input_frame, text="Charger Fichier", command=self.load_input_file).pack(side="right")
+        self.text_input = ctk.CTkTextbox(self.input_frame)
+        self.text_input.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-        # Cadre d'action
-        action_frame = tk.Frame(main_frame, bg="#f0f0f0")
-        action_frame.pack(fill="x", pady=(0, 15))
+        # Actions
+        self.action_frame = ctk.CTkFrame(self.tool_frame, fg_color="transparent")
+        self.action_frame.grid(row=3, column=0, pady=(0, 15))
+        
+        ctk.CTkButton(self.action_frame, text="CHIFFRER", font=ctk.CTkFont(weight="bold"), fg_color="#2ecc71", hover_color="#27ae60", command=lambda: self.process_action("encrypt")).pack(side="left", padx=10)
+        ctk.CTkButton(self.action_frame, text="DÉCHIFFRER", font=ctk.CTkFont(weight="bold"), fg_color="#e74c3c", hover_color="#c0392b", command=lambda: self.process_action("decrypt")).pack(side="left", padx=10)
 
-        tk.Button(action_frame, text="CHIFFRER", font=("Arial", 10, "bold"), bg="#3498db", fg="white", padx=20, command=lambda: self.process_action("encrypt")).pack(side="left", padx=10)
-        tk.Button(action_frame, text="DÉCHIFFRER", font=("Arial", 10, "bold"), bg="#e67e22", fg="white", padx=20, command=lambda: self.process_action("decrypt")).pack(side="left", padx=10)
+        # Output Frame
+        self.output_frame = ctk.CTkFrame(self.tool_frame)
+        self.output_frame.grid(row=4, column=0, sticky="nsew")
+        self.output_frame.grid_columnconfigure(0, weight=1)
+        self.output_frame.grid_rowconfigure(1, weight=1)
 
-        # Cadre de sortie
-        output_frame = tk.LabelFrame(main_frame, text="Résultat", padx=10, pady=10, bg="#f0f0f0")
-        output_frame.pack(fill="both", expand=True)
+        output_header = ctk.CTkFrame(self.output_frame, fg_color="transparent")
+        output_header.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+        ctk.CTkLabel(output_header, text="4. Résultat", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        ctk.CTkButton(output_header, text="Sauvegarder", command=self.save_output_file, width=120).pack(side="right")
 
-        self.text_output = tk.Text(output_frame, height=5)
-        self.text_output.pack(fill="both", expand=True, pady=(0, 5))
+        self.text_output = ctk.CTkTextbox(self.output_frame)
+        self.text_output.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-        tk.Button(output_frame, text="Sauvegarder Résultat", command=self.save_output_file).pack(side="right")
+    def setup_guide_ui(self):
+        guide_label = ctk.CTkLabel(self.guide_frame, text="Guide Utilisateur", font=ctk.CTkFont(size=24, weight="bold"))
+        guide_label.grid(row=0, column=0, pady=(0, 10), sticky="w")
+        
+        # Frame for HTML Label
+        self.html_frame = ctk.CTkFrame(self.guide_frame)
+        self.html_frame.grid(row=1, column=0, sticky="nsew")
+        
+        self.html_label = HTMLLabel(self.html_frame, html="<h1>Chargement...</h1>", background="white")
+        self.html_label.pack(fill="both", expand=True, padx=2, pady=2)
+
+        self.load_user_guide()
+
+    def load_user_guide(self):
+        try:
+            guide_path = os.path.join(os.path.dirname(__file__), "USER_GUIDE.md")
+            if os.path.exists(guide_path):
+                with open(guide_path, "r", encoding="utf-8") as f:
+                    md_content = f.read()
+                # Convert markdown to HTML
+                html_content = markdown.markdown(md_content)
+                self.html_label.set_html(html_content)
+            else:
+                self.html_label.set_html("<h1>Erreur</h1><p>USER_GUIDE.md non trouvé.</p>")
+        except Exception as e:
+            self.html_label.set_html(f"<h1>Erreur</h1><p>Impossible de lire le guide: {e}</p>")
 
     def update_parameters_visibility(self):
-        # Masquer tout
         for frame in [self.caesar_frame, self.affine_frame, self.key_frame, self.rsa_frame]:
             frame.pack_forget()
 
@@ -204,7 +299,6 @@ class CryptoGUI:
                 key = self.key_entry.get()
                 if not key: raise ValueError("Clé manquante")
                 key_bytes = key.encode('utf-8')
-                # Ajustement de la clé si nécessaire
                 if len(key_bytes) not in [16, 24, 32]:
                     key_bytes = hashlib.sha256(key_bytes).digest()
 
@@ -222,7 +316,6 @@ class CryptoGUI:
                 if not key: raise ValueError("Clé manquante")
                 key_bytes = key.encode('utf-8')
                 if len(key_bytes) != 8:
-                    # Utilisation de TripleDES avec une clé hachée
                     key_bytes = hashlib.sha256(key_bytes).digest()[:24]
 
                 if action == "encrypt":
@@ -259,6 +352,5 @@ class CryptoGUI:
             messagebox.showerror("Erreur de traitement", str(e))
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = CryptoGUI(root)
-    root.mainloop()
+    app = CryptoGUI()
+    app.mainloop()
